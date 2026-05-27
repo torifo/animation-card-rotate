@@ -1,0 +1,156 @@
+/* ────────────────────────────────────────────
+   D·Lo · 3D Card Rotate Hero
+   load で 3D 組み上げ → idle で回頭。perspective + transform のみ
+   Pure CSS + JS(REPLAYのみ)、外部依存ゼロ
+   ──────────────────────────────────────────── */
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:where(html,body){line-break:strict;word-break:normal;overflow-wrap:break-word}
+:where(h1,h2,h3,h4){text-wrap:balance}
+:where(p,li){text-wrap:pretty}
+
+:root{
+  --bg:#f4f3ee;
+  --ink:#0a0a0a;
+  --muted:#6a6a6a;
+  --line:#d8d6cc;
+  --paper:#fff;
+  --hi:#ff2d55;
+  --alt:#0066ff;
+  --font:'DM Sans','Noto Sans JP',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+
+  /* ── Component variables ── */
+  --cr-perspective:1400px;
+  --cr-spread:52%;        /* 左右カードの開き */
+  --cr-turn:26deg;        /* 左右カードの回頭角 */
+  --cr-in:900ms;          /* 登場 1 枚の時間 */
+}
+
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-weight:400;line-height:1.65;min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+/* ─── HEADER ─── */
+header.site{
+  position:sticky;top:0;z-index:50;background:var(--bg);
+  padding:1rem clamp(1.2rem,4vw,3rem);
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  border-bottom:1px solid var(--ink);
+}
+.back{font-family:var(--mono);font-size:.78rem;letter-spacing:.18em;display:inline-flex;align-items:center;gap:.6em}
+.back .arrow{transition:transform .25s}
+.back:hover .arrow{transform:translateX(-.3em)}
+.cell-marker{font-family:var(--mono);font-size:.78rem;letter-spacing:.22em;color:var(--hi)}
+
+/* ────────────────────────────────────────────
+   COMPONENT: .hero[data-card-rotate]
+   ──────────────────────────────────────────── */
+.hero{
+  max-width:1200px;margin:0 auto;
+  padding:clamp(3rem,7vw,6rem) clamp(1.5rem,4vw,3rem);
+  display:grid;grid-template-columns:1fr;gap:clamp(2.5rem,6vw,5rem);align-items:center;
+}
+@media(min-width:900px){.hero{grid-template-columns:1fr 1fr}}
+
+.hero-text .kicker{display:inline-block;font-family:var(--mono);font-size:.78rem;letter-spacing:.25em;padding:.3em .9em;border:1px solid var(--ink);margin-bottom:1.5rem}
+.hero-text h1{font-weight:700;font-size:clamp(2.4rem,6vw,4.4rem);line-height:1.02;letter-spacing:-.02em}
+.hero-text .lead{font-size:clamp(1rem,1.3vw,1.1rem);color:var(--muted);max-width:34em;margin-top:1.4rem}
+.replay{
+  display:inline-flex;align-items:center;gap:.7em;margin-top:1.8rem;
+  padding:.7em 1.2em;background:var(--ink);color:#fff;border:none;
+  font-family:var(--mono);font-size:.74rem;letter-spacing:.2em;cursor:pointer;
+  transition:transform .2s,box-shadow .2s;
+}
+.replay:hover{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--hi)}
+.replay .dot{width:.55em;height:.55em;border-radius:50%;background:var(--hi);animation:cr-blink 1.4s ease-in-out infinite}
+@keyframes cr-blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* scene / deck / cards */
+.scene{
+  perspective:var(--cr-perspective);
+  perspective-origin:50% 42%;
+  display:flex;justify-content:center;align-items:center;
+  min-height:clamp(320px,46vw,460px);
+  cursor:grab;
+  touch-action:pan-y;        /* 縦スクロールは許可、横ドラッグは回転に使う */
+}
+.scene.is-grabbing{cursor:grabbing}
+.deck{
+  position:relative;
+  width:clamp(190px,34vw,260px);
+  height:clamp(260px,46vw,360px);
+  transform-style:preserve-3d;
+  /* 回転（idle / カーソル追従 / ドラッグ）は JS が transform を駆動 */
+}
+.slot{position:absolute;inset:0;transform-style:preserve-3d}
+/* 左右は Z 方向に後退、中央は前へ。実 Z で前後を確定させ貫通を防ぐ */
+.slot--1{transform:translateX(calc(-1 * var(--cr-spread))) translateZ(-30px) rotateY(calc(-1 * var(--cr-turn)))}
+.slot--2{transform:translateZ(60px)}
+.slot--3{transform:translateX(var(--cr-spread)) translateZ(-30px) rotateY(var(--cr-turn))}
+
+.card{
+  position:absolute;inset:0;border-radius:18px;
+  border:1px solid rgba(10,10,10,.12);
+  box-shadow:0 24px 60px -24px rgba(10,10,10,.4);
+  backface-visibility:hidden;          /* 念のため裏面を描かない */
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:1.4rem;overflow:hidden;
+  animation:cr-in var(--cr-in) cubic-bezier(.2,.7,.2,1) backwards;
+}
+.slot--1 .card{animation-delay:.05s}
+.slot--2 .card{animation-delay:.2s}
+.slot--3 .card{animation-delay:.35s}
+@keyframes cr-in{
+  from{opacity:0;transform:translateY(55px) rotateX(30deg)}
+  to{opacity:1;transform:none}
+}
+.card--a{background:linear-gradient(150deg,#dbe6ff,#0066ff);color:#fff}
+.card--b{background:linear-gradient(150deg,#1a1a1a,#0a0a0a);color:#fff}
+.card--c{background:linear-gradient(150deg,#ffd0db,#ff2d55);color:#fff}
+.card-no{font-family:var(--mono);font-size:.78rem;letter-spacing:.25em;opacity:.8}
+.card-label{font-weight:700;font-size:clamp(1.1rem,2.4vw,1.5rem);letter-spacing:.06em}
+.card-glyph{position:absolute;right:.8rem;bottom:.4rem;font-size:clamp(3.5rem,8vw,5rem);line-height:1;opacity:.85}
+.card--b .card-glyph{color:var(--hi)}
+
+/* REPLAY：登場を再生 */
+.hero.is-replay .card{animation:none}
+/* END COMPONENT */
+
+
+/* ─── NOTES ─── */
+.notes{max-width:1100px;margin:0 auto;padding:clamp(3rem,5vw,4.5rem) clamp(1.5rem,4vw,3rem)}
+.shou{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding-bottom:1rem;border-bottom:1px solid var(--ink);margin-bottom:2.5rem}
+.shou h2{font-size:clamp(1.3rem,2vw,1.7rem);font-weight:700;letter-spacing:.04em}
+.shou .no{font-family:var(--mono);font-size:.78rem;letter-spacing:.25em;color:var(--muted)}
+.notes-grid{display:grid;grid-template-columns:1fr;gap:1.2rem;margin-bottom:3rem}
+@media(min-width:780px){.notes-grid{grid-template-columns:repeat(3,1fr)}}
+.note{position:relative;background:var(--paper);border:1px solid var(--ink);padding:1.5rem 1.4rem 1.4rem}
+.note-no{position:absolute;top:1rem;right:1rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.2em;color:var(--muted)}
+.note h3{font-size:1.02rem;font-weight:700;margin-bottom:.7rem;letter-spacing:.02em}
+.note p{font-size:.86rem;color:var(--muted);line-height:1.8}
+.note code,.var span code{font-family:var(--mono);font-size:.85em;background:var(--bg);padding:.1em .35em;border:1px solid var(--line)}
+.sub-h{font-size:1rem;font-weight:700;letter-spacing:.04em;margin:2rem 0 1rem;padding-bottom:.7rem;border-bottom:1px dashed var(--ink)}
+.vars{display:grid;grid-template-columns:1fr;gap:0;border:1px solid var(--ink);background:var(--paper)}
+.var{display:grid;grid-template-columns:minmax(10rem,auto) 1fr auto;gap:1rem;padding:.8rem 1rem;border-bottom:1px solid var(--line);align-items:center}
+.var:last-child{border-bottom:none}
+.var code{font-family:var(--mono);font-size:.82rem;color:var(--hi);font-weight:500}
+.var span{font-size:.85rem;color:var(--muted);line-height:1.5}
+.var em{font-family:var(--mono);font-size:.78rem;font-style:normal;color:var(--ink);background:var(--bg);padding:.15em .55em;border:1px solid var(--line);white-space:nowrap}
+@media(max-width:680px){.var{grid-template-columns:1fr;gap:.3rem;padding:.9rem 1rem}.var em{justify-self:start}}
+
+/* ─── FOOTER ─── */
+footer{
+  padding:2rem clamp(1.2rem,4vw,3rem) 1.5rem;
+  display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center;
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.2em;color:var(--muted);
+  border-top:1px solid var(--ink);
+}
+footer a{color:var(--ink)}
+
+/* Reduced motion: 登場・回頭を止め、定位置で静止表示 */
+@media (prefers-reduced-motion: reduce){
+  .deck{animation:none}
+  .card{animation:none}
+  .replay .dot{animation:none}
+}
