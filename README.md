@@ -14,6 +14,23 @@
 | 依存 | なし（Pure HTML + CSS + Vanilla JS。JS は REPLAY のみ） |
 | 推奨配置 | ファーストビュー、プロダクト／機能のショーケース |
 
+
+## スキルとして導入 / Install as a skill
+
+このリポジトリは Claude Code / Codex CLI 共通の **`SKILL.md`**（オープン標準）を同梱しており、AI エージェントのスキルとして使えます。リポジトリ自体をスキルディレクトリへリンクするだけです。
+
+This repo ships a cross-agent **`SKILL.md`** (open standard) usable by both Claude Code and Codex CLI. Just link the repo into the agent's skills directory.
+
+```bash
+# Claude Code
+ln -s "$(pwd)" ~/.claude/skills/anim-card-rotate
+# Codex CLI
+ln -s "$(pwd)" ~/.codex/skills/anim-card-rotate
+```
+
+エージェントを再起動すると `description` に基づき自動でマッチします（スキル名: `anim-card-rotate`）。
+Restart the agent; it is matched automatically by the skill's `description` (skill name: `anim-card-rotate`).
+
 ## 仕組み
 
 `.slot`（3D の定位置）と `.card`（登場アニメ）で transform を**親子に分離**して合成する。
